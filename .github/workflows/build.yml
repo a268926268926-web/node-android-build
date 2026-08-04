@@ -12,8 +12,9 @@ on:
         default: all
         options: [all, arm64, arm, x64, ia32]
   schedule:
-    # 每周一 02:20 UTC 检查并构建最新 LTS (全部架构)
-    - cron: '20 2 * * 1'
+    # 每月 5 日 02:20 UTC 检查并构建最新 LTS (全部架构)
+    # node LTS 补丁版约每月发布一次 (多为周二); 偶数大版本 10 月转 LTS
+    - cron: '20 2 5 * *'
 
 permissions:
   contents: write

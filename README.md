@@ -32,7 +32,8 @@ nodejs-v24.19.0-android-arm64/
 - 手动触发：Actions → Build Node.js for Android → Run workflow，可选
   - `node_version`：`lts`（默认，最新 LTS）/ 主版本如 `24` / 完整版本如 `24.19.0`
   - `target_arch`：`all`（默认，**全部 4 架构**）/ `arm64` / `arm` / `x64` / `ia32`
-- 定时：每周一自动检查并构建最新 LTS（全部架构）
+- 定时：每月 5 日自动检查并构建最新 LTS（全部架构）
+  （node LTS 补丁版约每月发布一次，多为周二；偶数大版本 10 月转 LTS，schedule 会自动跟进）
 - 已发布过的版本自动跳过（不重复构建）
 - **历史版本全部保留**：每个版本一个独立 release tag
 
@@ -99,8 +100,9 @@ termux 编译 node 用的是共享库（`--shared-openssl --shared-icu ...`）�
 
 这个仓库是「构建脚本 + 补丁集」的轻量仓库，日常基本无人值守：
 
-- **每周例行**：不用管。`schedule` 会在每周一自动构建最新 LTS（4 架构），
+- **每月例行**：不用管。`schedule` 会在每月 5 日自动构建最新 LTS（4 架构），
   新版本自动发 release，旧版本自动跳过。偶尔看一眼 Actions 是否全绿即可。
+  （LTS 补丁版约每月一发，多为周二；偶尔有 1-2 周内的快速补丁，如不急可等下一个周期）
 - **主动构建**：Actions → Run workflow，选版本（`lts` / 主版本 / 完整版本）和架构（`all` 或单个）。
 - **Node 出新 LTS 大版本时**（如 25/26 转 LTS）：这是唯一需要动手的时候。
   1. 手动触发一次构建（先选单架构如 `arm64`，省时间）

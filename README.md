@@ -79,9 +79,8 @@ termux 编译 node 用的是共享库（`--shared-openssl --shared-icu ...`）�
 | `src-node_internals.h.patch` | 启用 POSIX credentials API（getuid 等） |
 | `src-node_report.cc.patch` | `uv_get_cpu_info` 失败时 node_report 崩溃修复 |
 
-**未采用**的 termux 专属项：`src-getaddrinfo.c`（`__TERMUX__` 守卫的 DNS 绕行方案）、
-`@TERMUX_PREFIX@` 路径替换（lib-os.js / lib-child_process.js / v8 flags / uv core.c）、
-`src-debug_utils.cc.patch`（`__TERMUX__` 守卫）、测试用例 patch。
+**未采用**的 termux 专属项见 [patches/BLACKLIST.md](patches/BLACKLIST.md)
+（黑名单共 20 个：termux 路径硬编码 / `__TERMUX__` 守卫 / 测试用例三类）。
 
 **额外处理**（termux 用共享库所以碰不到的问题）：
 

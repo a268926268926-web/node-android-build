@@ -1,0 +1,4 @@
+# 构建产物
+out/
+*.tar.xz
+node-v*/

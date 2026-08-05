@@ -73,7 +73,7 @@ jobs:
       - name: Restore NDK cache
         id: cache-ndk
         if: env.NDK_VER != ''
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ndk-${{ env.NDK_VER }}
           key: ndk-${{ env.NDK_VER }}
@@ -99,7 +99,7 @@ jobs:
       # 缓存: LLVM host 工具链 (跨架构共享, 同大版本内 v8 DEPS 钉定不变)
       - name: Restore LLVM cache
         id: cache-llvm
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: out/llvm-project-build
           key: llvm-${{ env.NODE_MAJOR }}
@@ -107,7 +107,7 @@ jobs:
       # 缓存: node 源码目录 (patch 后, 跨架构共享; tar 恢复保留 mtime, 同版本重跑增量)
       - name: Restore source cache
         id: cache-src
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: out/node-v${{ env.NODE_VER }}
           key: src-${{ env.NODE_VER }}
@@ -115,7 +115,7 @@ jobs:
       # 缓存: ninja 编译产物 (每架构独立; 同版本重跑全 up-to-date, 跨小版本回退增量)
       - name: Restore build output cache
         id: cache-build
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: out/Release
           key: build-${{ matrix.arch }}-${{ env.NODE_MAJOR }}-${{ env.NODE_VER }}
@@ -139,28 +139,28 @@ jobs:
       # save 用 restore 的 cache-primary-key (主 key), 路径不存在时只警告不失败
       - name: Save NDK cache
         if: always() && env.NDK_VER != '' && steps.cache-ndk.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ndk-${{ env.NDK_VER }}
           key: ${{ steps.cache-ndk.outputs.cache-primary-key }}
 
       - name: Save LLVM cache
         if: always() && steps.cache-llvm.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: out/llvm-project-build
           key: ${{ steps.cache-llvm.outputs.cache-primary-key }}
 
       - name: Save source cache
         if: always() && steps.cache-src.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: out/node-v${{ env.NODE_VER }}
           key: ${{ steps.cache-src.outputs.cache-primary-key }}
 
       - name: Save build output cache
         if: always() && steps.cache-build.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: out/Release
           key: ${{ steps.cache-build.outputs.cache-primary-key }}

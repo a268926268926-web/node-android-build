@@ -177,7 +177,7 @@ jobs:
       # 每个版本一个 asset (node-android-<arch>-<version>.tar.xz), 同名自动跳过, 新版本追加
       - name: Upload release
         if: hashFiles('out/node-android-*.tar.xz') != ''
-        uses: ncipollo/release-action@v1.14.0
+        uses: ncipollo/release-action@v1.21.0
         with:
           tag: node-android-${{ matrix.arch }}-${{ env.NODE_MAJOR }}
           name: Node.js for Android (${{ matrix.arch }}) - ${{ env.NODE_MAJOR }}.x

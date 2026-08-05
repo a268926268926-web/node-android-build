@@ -10,6 +10,7 @@ on:
       target_arch:
         description: '目标架构 (all=全部 4 架构)'
         default: all
+        type: choice
         options: [all, arm64, arm, x64, ia32]
   schedule:
     # 每月 5 日 02:20 UTC 检查并构建最新 LTS (全部架构)

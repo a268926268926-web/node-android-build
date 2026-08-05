@@ -33,7 +33,7 @@ jobs:
         # 手动选择具体架构时只构建该架构; 默认/schedule 构建全部 4 架构
         arch: ${{ (inputs.target_arch || 'all') == 'all' && fromJSON('["arm64","arm","x64","ia32"]') || fromJSON(format('["{0}"]', inputs.target_arch || 'all')) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # 提前解析版本 (cache key 需要), 与 build.sh 的 resolve_version 逻辑一致
       - name: Resolve node version

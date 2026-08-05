@@ -42,8 +42,10 @@ nodejs-v24.19.0-android-arm64/
 ### 本地构建
 
 ```sh
-# 需要: NDK (r25+, 推荐 r26+)、curl、tar、xz、python3、ninja
-export ANDROID_NDK_HOME=/path/to/android-ndk-r27
+# 需要: NDK (r28+, 推荐 r29)、curl、tar、xz、python3、ninja
+# 注意: node 26 的 v8 用到 std::atomic_ref, 需要 libc++ >= LLVM 19 (NDK r28+);
+#       NDK r27 (LLVM 18) 的 libc++ 没有 atomic_ref 会编译失败
+export ANDROID_NDK_HOME=/path/to/android-ndk-r29
 ./build.sh                          # 最新 LTS + arm64
 NODE_VERSION=24 TARGET_ARCH=arm ./build.sh
 ```

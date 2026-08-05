@@ -48,12 +48,34 @@ jobs:
           echo "NODE_MAJOR=${VER%%.*}" >> "$GITHUB_ENV"
           echo "解析到 node $VER (major ${VER%%.*})"
 
+      # 缓存: NDK r29 (r27 的 libc++ 缺 std::atomic_ref, v8 26 需要; r29=LLVM20 才有)
+      - name: Cache NDK r29
+        uses: actions/cache@v4
+        with:
+          path: ndk-r29
+          key: ndk-r29
+          save-always: true
+
+      - name: Install NDK r29
+        run: |
+          NDK_HOME="${{ github.workspace }}/ndk-r29/android-ndk-r29"
+          if [ ! -x "$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" ]; then
+            echo "下载 NDK r29 (${NDK_HOME} 不存在) ..."
+            curl -fL --retry 3 -o /tmp/ndk.zip "https://dl.google.com/android/repository/android-ndk-r29-linux.zip"
+            mkdir -p "${{ github.workspace }}/ndk-r29"
+            unzip -q /tmp/ndk.zip -d "${{ github.workspace }}/ndk-r29"
+            rm -f /tmp/ndk.zip
+          fi
+          echo "ANDROID_NDK_HOME=$NDK_HOME" >> "$GITHUB_ENV"
+          echo "NDK: $NDK_HOME"
+
       # 缓存: LLVM host 工具链 (跨架构共享, 同大版本内 v8 DEPS 钉定不变)
       - name: Cache LLVM host toolchain
         uses: actions/cache@v4
         with:
           path: out/llvm-project-build
           key: llvm-${{ env.NODE_MAJOR }}
+          save-always: true
 
       # 缓存: node 源码目录 (patch 后, 跨架构共享; tar 恢复保留 mtime, 同版本重跑增量)
       - name: Cache node source
@@ -61,6 +83,7 @@ jobs:
         with:
           path: out/node-v${{ env.NODE_VER }}
           key: src-${{ env.NODE_VER }}
+          save-always: true
 
       # 缓存: ninja 编译产物 (每架构独立; 同版本重跑全 up-to-date, 跨小版本回退增量)
       - name: Cache build output
@@ -68,6 +91,7 @@ jobs:
         with:
           path: out/Release
           key: build-${{ matrix.arch }}-${{ env.NODE_MAJOR }}-${{ env.NODE_VER }}
+          save-always: true
           restore-keys: |
             build-${{ matrix.arch }}-${{ env.NODE_MAJOR }}-
 

@@ -70,13 +70,13 @@ jobs:
           esac
           echo "NDK_VER=$VER" >> "$GITHUB_ENV"
 
-      - name: Cache NDK
+      - name: Restore NDK cache
+        id: cache-ndk
         if: env.NDK_VER != ''
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ndk-${{ env.NDK_VER }}
           key: ndk-${{ env.NDK_VER }}
-          save-always: true
 
       - name: Install NDK
         if: env.NDK_VER != ''
@@ -97,28 +97,28 @@ jobs:
           echo "NDK: $NDK_HOME"
 
       # 缓存: LLVM host 工具链 (跨架构共享, 同大版本内 v8 DEPS 钉定不变)
-      - name: Cache LLVM host toolchain
-        uses: actions/cache@v4
+      - name: Restore LLVM cache
+        id: cache-llvm
+        uses: actions/cache/restore@v4
         with:
           path: out/llvm-project-build
           key: llvm-${{ env.NODE_MAJOR }}
-          save-always: true
 
       # 缓存: node 源码目录 (patch 后, 跨架构共享; tar 恢复保留 mtime, 同版本重跑增量)
-      - name: Cache node source
-        uses: actions/cache@v4
+      - name: Restore source cache
+        id: cache-src
+        uses: actions/cache/restore@v4
         with:
           path: out/node-v${{ env.NODE_VER }}
           key: src-${{ env.NODE_VER }}
-          save-always: true
 
       # 缓存: ninja 编译产物 (每架构独立; 同版本重跑全 up-to-date, 跨小版本回退增量)
-      - name: Cache build output
-        uses: actions/cache@v4
+      - name: Restore build output cache
+        id: cache-build
+        uses: actions/cache/restore@v4
         with:
           path: out/Release
           key: build-${{ matrix.arch }}-${{ env.NODE_MAJOR }}-${{ env.NODE_VER }}
-          save-always: true
           restore-keys: |
             build-${{ matrix.arch }}-${{ env.NODE_MAJOR }}-
 
@@ -134,6 +134,36 @@ jobs:
         run: |
           ./build.sh
           ls -lh out/node-android-*.tar.xz 2>/dev/null || true
+
+      # 保存缓存: always() = 构建失败也保存 (重跑增量); cache-hit=true 跳过 (不覆盖已有)
+      # save 用 restore 的 cache-primary-key (主 key), 路径不存在时只警告不失败
+      - name: Save NDK cache
+        if: always() && env.NDK_VER != '' && steps.cache-ndk.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ndk-${{ env.NDK_VER }}
+          key: ${{ steps.cache-ndk.outputs.cache-primary-key }}
+
+      - name: Save LLVM cache
+        if: always() && steps.cache-llvm.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: out/llvm-project-build
+          key: ${{ steps.cache-llvm.outputs.cache-primary-key }}
+
+      - name: Save source cache
+        if: always() && steps.cache-src.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: out/node-v${{ env.NODE_VER }}
+          key: ${{ steps.cache-src.outputs.cache-primary-key }}
+
+      - name: Save build output cache
+        if: always() && steps.cache-build.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: out/Release
+          key: ${{ steps.cache-build.outputs.cache-primary-key }}
 
       - name: Upload artifact
         if: hashFiles('out/node-android-*.tar.xz') != ''

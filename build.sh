@@ -68,6 +68,18 @@ print(m[0]['version'].lstrip('v'))"
 VER=$(resolve_version)
 info "Node 版本: $VER"
 
+# ---------- 按大版本选补丁集 ----------
+# patches/<大版本>/{termux,stubs}: 每个 node 大版本一套独立补丁 (24/26 已验证)
+MAJOR="${VER%%.*}"
+PATCH_DIR="$PATCHES/$MAJOR"
+if [ ! -d "$PATCH_DIR" ]; then
+  PATCH_DIR=$(ls -d "$PATCHES"/[0-9]* 2>/dev/null | sort -V | tail -n 1)
+  [ -n "$PATCH_DIR" ] && [ -d "$PATCH_DIR" ] \
+    || die "未找到任何补丁目录: 需要 $PATCHES/$MAJOR 或任意 patches/<大版本>"
+  warn "node $MAJOR 没有专属补丁集, 回退使用 $(basename "$PATCH_DIR") 版 (可能部分失效, 见下方警告)"
+fi
+info "补丁集: $(basename "$PATCH_DIR") (node ${MAJOR}.x)"
+
 # ---------- 架构 ----------
 case "$TARGET_ARCH" in
   arm64|aarch64) DEST_CPU="arm64"; TOOLCHAIN_PREFIX="aarch64-linux-android";    HOST_M32="" ;;
@@ -122,10 +134,10 @@ cd "$SRC_DIR"
 
 # ---------- 打补丁 ----------
 info "应用补丁 ..."
-# termux-packages/packages/nodejs-lts 移植的 Android 修复
+# termux-packages (nodejs-lts 24.x / nodejs 26.x) 移植的 Android 修复
 # (除 termux 专用项: @TERMUX_PREFIX@ 路径 / __TERMUX__ 守卫 / 测试用例)
-# 对 node 24.19.0 实测全部可应用; 新版本个别失效时告警并靠下方 sed 兜底
-for f in "$PATCHES"/termux/*.patch; do
+# 24/26 两套补丁均实测可应用; 新版本个别失效时告警并靠下方 sed 兜底
+for f in "$PATCH_DIR"/termux/*.patch; do
   if patch -f -p1 -t --no-backup-if-mismatch < "$f" >/dev/null 2>&1; then
     info "  应用 $(basename "$f")"
   else
@@ -201,8 +213,8 @@ export GYP_DEFINES="\
   OS=android \
   android_ndk_path=${NDK}"
 
-# cpu-features.h: NDK r26+ 已移除, 用 stub; API<28 需要 aligned_alloc 别名
-CFLAGS=" -I${PATCHES}/stubs"
+# cpu-features.h: NDK r26+ 已移除, 用当前大版本补丁集里的 stub; API<28 需要 aligned_alloc 别名
+CFLAGS=" -I${PATCH_DIR}/stubs"
 if [ "$ANDROID_SDK_VERSION" -lt 28 ]; then
   CFLAGS+=" -Daligned_alloc=memalign"
 fi

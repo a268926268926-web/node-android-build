@@ -1,8 +1,9 @@
 # Patch 黑名单
 
-来源: termux-packages/packages/nodejs-lts（共 32 个 patch，本仓库只采用 12 个）。
+来源: termux-packages 的 `nodejs-lts`（24.x，共 32 个）与 `nodejs`（26.x，共 33 个）包。
+本仓库按大版本存放补丁集（`patches/24/`、`patches/26/`），每套只采用 12 个。
 
-以下 patch **禁止**放入 `patches/termux/` 参与构建。按原因分三类：
+以下 patch **禁止**放入 `patches/<大版本>/termux/` 参与构建。按原因分三类：
 
 ## 1. termux 路径硬编码（`@TERMUX_PREFIX@`）— 黑名单
 
@@ -24,7 +25,7 @@
 | patch | 改动 | 为什么不用 |
 | --- | --- | --- |
 | `src-getaddrinfo.patch` | 新增 `src/getaddrinfo.c`（dlopen 系统 libc 的 DNS 绕行） | 整个文件被 `#ifdef __TERMUX__` 守卫；普通 Android 用系统 getaddrinfo 即可 |
-| `node.gyp.patch` | 把 `src/getaddrinfo.c` 加进 node_main 源列表 | **依赖上面的文件**；单独应用会让编译找不到文件而失败 |
+| `node.gyp.patch` | 把 `src/getaddrinfo.c` 加进 node_main 源列表 | **依赖上面的文件**；单独应用会让编译找不到文件而失败（26.x 版还带 `-latomic` 改动，我们用 node.gyp 的 sed 覆盖，无需此 patch） |
 | `src-debug_utils.cc.patch` | 日志输出改为非 termux 时走 logcat | `__TERMUX__` 守卫；普通 Android 走 logcat 是正确行为 |
 
 ## 3. 测试用例 patch — 黑名单
@@ -47,7 +48,7 @@ test-parallel-test-process-constants-noatime.js.patch
 test-sequential-test-fs-watch.js.patch
 ```
 
-## 对照：已包含的白名单（`patches/termux/`）
+## 对照：已包含的白名单（`patches/<大版本>/termux/`）
 
 | patch | 作用 |
 | --- | --- |
@@ -64,9 +65,18 @@ test-sequential-test-fs-watch.js.patch
 | `tools-v8_gypfiles-toolchain.gypi.patch` | v8 日志输出 stdout；移除 arm64 分支保护参数 |
 | `tools-v8_gypfiles-v8.gyp.patch` | v8 在 Android 链接 `-latomic`；补 platform-linux.h |
 
-> 不在 termux 体系内、由本仓库自行处理的项（`patches/stubs/cpu-features.h`、
+> 不在 termux 体系内、由本仓库自行处理的项（`patches/<大版本>/stubs/cpu-features.h`、
 > node.gyp 的 `-mbranch-protection` sed、`-latomic` 保险、trap-handler sed 兜底）
 > 不受本黑名单影响，见 README「构建要点」。
+
+## 版本对照
+
+- `patches/24/`：12 个 patch，对 node 24.19.0 实测全部可应用（来源 nodejs-lts 24.x）
+- `patches/26/`：12 个 patch，对 node 26.6.0 实测全部可应用（来源 nodejs 26.x；
+  唯一差异：`deps-v8-src-trap-handler-trap-handler.h.patch` 换成 26 版，对应 v8 新的
+  USE_SIMULATOR 结构，旧版打不上）
+- 26.x 新增的 `deps-v8-src-flags-flag-definitions.h.patch`（v8 `/tmp` 路径 → `@TERMUX_PREFIX@/tmp`）
+  属第 1 类（路径硬编码），继续黑名单
 
 ## 维护规则
 

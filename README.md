@@ -63,7 +63,22 @@ NODE_VERSION=24 TARGET_ARCH=arm ./build.sh
 termux 编译 node 用的是共享库（`--shared-openssl --shared-icu ...`），依赖 termux 环境；
 本仓库改为**全部内置**（bundled openssl/zlib/ICU/uv，`--partly-static`），产物独立可跑。
 
-`patches/termux/` 直接来自 `nodejs-lts` 包（对 node 24.19.0 实测全部可应用）：
+`patches/` 按 **node 大版本**分目录，每版一套独立的 termux patch + stub（24 对 24.19.0、26 对 26.6.0 实测可应用；
+termux 来源：nodejs-lts 包 24.x / nodejs 包 26.x）：
+
+```
+patches/
+├── 24/
+│   ├── termux/       # 24.x 版补丁集 (12 个)
+│   └── stubs/        # 24.x 版 stub (cpu-features.h)
+├── 26/
+│   ├── termux/       # 26.x 版补丁集 (12 个)
+│   └── stubs/        # 26.x 版 stub (cpu-features.h)
+└── BLACKLIST.md      # termux 黑名单分类 (适用于所有版本)
+```
+
+build.sh 按解析出的版本号自动选 `patches/<大版本>/`；没有专属目录时回退到最新一套并告警。
+下表为通用说明（24/26 两套内容一致，唯一差异：26 版 trap-handler patch 对应 v8 新结构）：
 
 | Patch | 作用 |
 | --- | --- |
@@ -87,14 +102,14 @@ termux 编译 node 用的是共享库（`--shared-openssl --shared-icu ...`）�
 
 | 问题 | 处理 |
 | --- | --- |
-| 内置 zlib 的 `cpu_features.c` 需要 `<cpu-features.h>`，NDK r26+ 已移除该库 | `patches/stubs/cpu-features.h` 提供最小 stub（禁用 CRC32/PMULL SIMD，安全） |
+| 内置 zlib 的 `cpu_features.c` 需要 `<cpu-features.h>`，NDK r26+ 已移除该库 | `patches/<大版本>/stubs/cpu-features.h` 提供最小 stub（禁用 CRC32/PMULL SIMD，安全） |
 | node.gyp 自身也带 `-mbranch-protection=standard` | sed 移除 |
 | API < 28 时 `aligned_alloc` 不存在（cctest 用） | CFLAGS 加 `-Daligned_alloc=memalign` |
 | v8 的 host 工具链要求较新 LLVM（Ubuntu 自带太旧） | 从 `deps/v8/DEPS` 解析 Google 钉定的 LLVM 构建，失败回退 gcc |
 
 > node 大版本升级时 v8/构建系统可能变化，个别补丁可能失效。
 > build.sh 对所有补丁「尽力应用，失败告警 + sed 兜底」，不会因补丁失败中断，
-> 但请留意构建日志中的 `[!]` 警告，必要时对照 termux 更新 `patches/termux/`。
+> 但请留意构建日志中的 `[!]` 警告，必要时对照 termux 更新 `patches/<大版本>/termux/`。
 
 ## 维护指南
 
@@ -104,11 +119,13 @@ termux 编译 node 用的是共享库（`--shared-openssl --shared-icu ...`）�
   新版本自动发 release，旧版本自动跳过。偶尔看一眼 Actions 是否全绿即可。
   （LTS 补丁版约每月一发，多为周二；偶尔有 1-2 周内的快速补丁，如不急可等下一个周期）
 - **主动构建**：Actions → Run workflow，选版本（`lts` / 主版本 / 完整版本）和架构（`all` 或单个）。
-- **Node 出新 LTS 大版本时**（如 25/26 转 LTS）：这是唯一需要动手的时候。
+- **Node 出新 LTS 大版本时**（如 27 转 LTS / 新大版本）：这是唯一需要动手的时候。
   1. 手动触发一次构建（先选单架构如 `arm64`，省时间）
   2. 看构建日志里的 `[!]` 警告——通常会有几个 termux 补丁失效
-  3. 去 [termux-packages/packages/nodejs-lts](https://github.com/termux/termux-packages/tree/master/packages/nodejs-lts)
-     对照更新 `patches/termux/`（termux 跟进新版本比我们快，直接抄它的 patch）
+  3. 去 [termux-packages](https://github.com/termux/termux-packages/tree/master/packages)
+     对照更新 `patches/<新大版本>/termux/`（termux 跟进新版本比我们快，直接抄它的 patch）：
+     先 `cp -r patches/<最近版本> patches/<新大版本>`，再把失效的 patch 换成 termux 新版；
+     `patches/<新大版本>/stubs/` 保持同步即可（内容一般不变）
   4. 确认 4 架构都绿后打 commit（可顺带在 README 更新验证过的版本号）
 - **更新流程**：提交推到 main 后无需手动触发，下周的 schedule 会自动构建最新 LTS；
   想立即验证就手动触发一次。
@@ -116,4 +133,4 @@ termux 编译 node 用的是共享库（`--shared-openssl --shared-icu ...`）�
 
 ## 许可
 
-MIT（Node.js 本体为 MIT；补丁来自 termux-packages（GPL-3.0 仓库）的 nodejs-lts 包）。
+MIT（Node.js 本体为 MIT；补丁来自 termux-packages（GPL-3.0 仓库）的 nodejs-lts / nodejs 包）。

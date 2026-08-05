@@ -34,7 +34,8 @@ nodejs-v24.19.0-android-arm64/
   - `node_version`：`lts`（默认，最新 LTS）/ 主版本如 `24` / 完整版本如 `24.19.0`
   - `target_arch`：`all`（默认，**全部 4 架构**）/ `arm64` / `arm` / `x64` / `ia32`
   - `ndk_version`：`recommended`（默认，查仓库 [ndk-recommended.json](ndk-recommended.json)
-    按 node 大版本取推荐 NDK）/ 具体版本如 `r29` / 留空 = 用 runner 默认 NDK
+    按 node 大版本取推荐 NDK）/ `latest`（运行 [scripts/ndk.py](scripts/ndk.py)
+    从 Google 官方清单解析**最新稳定版**）/ 具体版本如 `r29` / 留空 = 用 runner 默认 NDK
     （推荐版本下载失败会自动回退 runner 默认）
 - 定时：每月 5 日自动检查并构建最新 LTS（全部架构）
   （node LTS 补丁版约每月发布一次，多为周二；偶数大版本 10 月转 LTS，schedule 会自动跟进）

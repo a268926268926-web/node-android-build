@@ -13,7 +13,7 @@ on:
         type: choice
         options: [all, arm64, arm, x64, ia32]
       ndk_version:
-        description: 'NDK 版本: recommended(默认, 查仓库 ndk-recommended.json) / 具体版本如 r29 / 留空用 runner 默认'
+        description: 'NDK 版本: recommended(默认, 查仓库 ndk-recommended.json) / latest(最新稳定) / 具体版本如 r29 / 留空用 runner 默认'
         default: recommended
         required: false
   schedule:
@@ -52,22 +52,22 @@ jobs:
           echo "NODE_MAJOR=${VER%%.*}" >> "$GITHUB_ENV"
           echo "解析到 node $VER (major ${VER%%.*})"
 
-      # NDK 版本解析: recommended(查仓库 ndk-recommended.json, 按 node 大版本) / 具体版本 / 未登记=runner 默认
+      # NDK 版本解析: recommended(查仓库 ndk-recommended.json, 按 node 大版本) / latest(脚本解析最新稳定) / 具体版本 / 未登记=runner 默认
       - name: Resolve NDK version
         run: |
           INPUT="${{ inputs.ndk_version || 'recommended' }}"
           MAJOR="${NODE_VER%%.*}"
           VER=""
-          if [ "$INPUT" = "recommended" ]; then
-            VER=$(python3 -c "import json;d=json.load(open('ndk-recommended.json'));print(d.get('recommended',{}).get('$MAJOR',''))" 2>/dev/null || true)
-            if [ -n "$VER" ]; then
-              echo "推荐列表: node $MAJOR -> NDK $VER"
-            else
-              echo "推荐列表未登记 node $MAJOR, 使用 runner 默认 NDK"
-            fi
-          else
-            VER="$INPUT"
-          fi
+          case "$INPUT" in
+            recommended)
+              VER=$(python3 -c "import json;d=json.load(open('ndk-recommended.json'));print(d.get('recommended',{}).get('$MAJOR',''))" 2>/dev/null || true)
+              if [ -n "$VER" ]; then echo "推荐列表: node $MAJOR -> NDK $VER"; else echo "推荐列表未登记 node $MAJOR, 使用 runner 默认 NDK"; fi ;;
+            latest)
+              VER=$(python3 scripts/ndk.py latest 2>/dev/null || true)
+              if [ -n "$VER" ]; then echo "最新稳定 NDK: $VER"; else echo "::warning::解析最新 NDK 失败, 回退 runner 默认 NDK"; fi ;;
+            *)
+              VER="$INPUT" ;;
+          esac
           echo "NDK_VER=$VER" >> "$GITHUB_ENV"
 
       - name: Cache NDK

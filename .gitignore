@@ -2,3 +2,7 @@
 out/
 *.tar.xz
 node-v*/
+
+# Python
+__pycache__/
+*.pyc

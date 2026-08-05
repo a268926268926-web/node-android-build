@@ -244,6 +244,18 @@ CONFIGURE_ARGS=(
   --without-npm
   --prefix="$OUT_DIR/nodejs-v${VER}-android-${DEST_CPU}"
 )
+# 大版本专属 configure 参数: patches/<大版本>/custom/configure-args (每行一个)
+# 版本差异集中管理在补丁目录, build.sh 保持通用 (如 26 的 Temporal 禁用)
+CONFIG_ARGS_FILE="$PATCH_DIR/custom/configure-args"
+if [ -f "$CONFIG_ARGS_FILE" ]; then
+  info "读取额外 configure 参数: ${CONFIG_ARGS_FILE#$REPO_DIR/}"
+  while IFS= read -r arg; do
+    case "$arg" in
+      ""|\#*) continue ;;  # 跳过空行和注释
+    esac
+    CONFIGURE_ARGS+=("$arg")
+  done < "$CONFIG_ARGS_FILE"
+fi
 if [ "$BACKEND" = "ninja" ]; then
   CONFIGURE_ARGS+=(--ninja)
 fi

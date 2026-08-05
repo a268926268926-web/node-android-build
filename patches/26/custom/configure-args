@@ -1,0 +1,6 @@
+# node 26+ 的 Temporal 是 Rust 实现 (temporal_rs/temporal_capi)
+# Android 交叉编译: GitHub runner 的 rustup 只有 host target, cargo 编出的
+# libnode_crates.a 是 x86_64, 链接 aarch64 时报 incompatible
+# -> 禁用 Temporal (实验性功能, 不影响 node 本体与模块运行)
+# 每行一个 configure 参数, 空行与 # 注释会被跳过
+--v8-disable-temporal-support

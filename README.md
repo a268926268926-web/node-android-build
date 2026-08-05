@@ -81,11 +81,16 @@ patches/
 │   └── stubs/        # 24.x 版 stub (cpu-features.h)
 ├── 26/
 │   ├── termux/       # 26.x 版补丁集 (12 个)
-│   └── stubs/        # 26.x 版 stub (cpu-features.h)
+│   ├── stubs/        # 26.x 版 stub (cpu-features.h)
+│   └── custom/       # 26.x 版专属构建配置 (见下)
 └── BLACKLIST.md      # termux 黑名单分类 (适用于所有版本)
 ```
 
 build.sh 按解析出的版本号自动选 `patches/<大版本>/`；没有专属目录时回退到最新一套并告警。
+`custom/configure-args`：该大版本的**额外 configure 参数**（每行一个，`#` 注释/空行跳过），
+用于把版本差异收在补丁目录里、build.sh 保持通用——例如 26 的
+`--v8-disable-temporal-support`（Temporal 是 Rust 实现，Android 交叉编译 cargo 只有
+host target 编不出 aarch64，禁用该实验性功能）。
 下表为通用说明（24/26 两套内容一致，唯一差异：26 版 trap-handler patch 对应 v8 新结构）：
 
 | Patch | 作用 |
@@ -148,7 +153,9 @@ node 24 用 r27 即可。推荐列表登记了才下载安装，未登记的大�
   3. 去 [termux-packages](https://github.com/termux/termux-packages/tree/master/packages)
      对照更新 `patches/<新大版本>/termux/`（termux 跟进新版本比我们快，直接抄它的 patch）：
      先 `cp -r patches/<最近版本> patches/<新大版本>`，再把失效的 patch 换成 termux 新版；
-     `patches/<新大版本>/stubs/` 保持同步即可（内容一般不变）
+     `patches/<新大版本>/stubs/` 保持同步即可（内容一般不变）；
+     构建系统级的版本差异（如新大版本的 configure 参数）写进
+     `patches/<新大版本>/custom/configure-args`，不用改 build.sh
   4. 确认 4 架构都绿后打 commit（可顺带在 README 更新验证过的版本号）
 - **更新流程**：提交推到 main 后无需手动触发，下周的 schedule 会自动构建最新 LTS；
   想立即验证就手动触发一次。

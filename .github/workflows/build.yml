@@ -12,6 +12,10 @@ on:
         default: all
         type: choice
         options: [all, arm64, arm, x64, ia32]
+      ndk_version:
+        description: 'NDK 版本: recommended(默认, 查仓库 ndk-recommended.json) / 具体版本如 r29 / 留空用 runner 默认'
+        default: recommended
+        required: false
   schedule:
     # 每月 5 日 02:20 UTC 检查并构建最新 LTS (全部架构)
     # node LTS 补丁版约每月发布一次 (多为周二); 偶数大版本 10 月转 LTS
@@ -48,22 +52,45 @@ jobs:
           echo "NODE_MAJOR=${VER%%.*}" >> "$GITHUB_ENV"
           echo "解析到 node $VER (major ${VER%%.*})"
 
-      # 缓存: NDK r29 (r27 的 libc++ 缺 std::atomic_ref, v8 26 需要; r29=LLVM20 才有)
-      - name: Cache NDK r29
+      # NDK 版本解析: recommended(查仓库 ndk-recommended.json, 按 node 大版本) / 具体版本 / 未登记=runner 默认
+      - name: Resolve NDK version
+        run: |
+          INPUT="${{ inputs.ndk_version || 'recommended' }}"
+          MAJOR="${NODE_VER%%.*}"
+          VER=""
+          if [ "$INPUT" = "recommended" ]; then
+            VER=$(python3 -c "import json;d=json.load(open('ndk-recommended.json'));print(d.get('recommended',{}).get('$MAJOR',''))" 2>/dev/null || true)
+            if [ -n "$VER" ]; then
+              echo "推荐列表: node $MAJOR -> NDK $VER"
+            else
+              echo "推荐列表未登记 node $MAJOR, 使用 runner 默认 NDK"
+            fi
+          else
+            VER="$INPUT"
+          fi
+          echo "NDK_VER=$VER" >> "$GITHUB_ENV"
+
+      - name: Cache NDK
+        if: env.NDK_VER != ''
         uses: actions/cache@v4
         with:
-          path: ndk-r29
-          key: ndk-r29
+          path: ndk-${{ env.NDK_VER }}
+          key: ndk-${{ env.NDK_VER }}
           save-always: true
 
-      - name: Install NDK r29
+      - name: Install NDK
+        if: env.NDK_VER != ''
         run: |
-          NDK_HOME="${{ github.workspace }}/ndk-r29/android-ndk-r29"
+          NDK_HOME="${{ github.workspace }}/ndk-${{ env.NDK_VER }}/android-ndk-${{ env.NDK_VER }}"
           if [ ! -x "$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" ]; then
-            echo "下载 NDK r29 (${NDK_HOME} 不存在) ..."
-            curl -fL --retry 3 -o /tmp/ndk.zip "https://dl.google.com/android/repository/android-ndk-r29-linux.zip"
-            mkdir -p "${{ github.workspace }}/ndk-r29"
-            unzip -q /tmp/ndk.zip -d "${{ github.workspace }}/ndk-r29"
+            echo "下载 NDK ${{ env.NDK_VER }} ..."
+            if ! curl -fL --retry 3 -o /tmp/ndk.zip "https://dl.google.com/android/repository/android-ndk-${{ env.NDK_VER }}-linux.zip"; then
+              echo "::warning::NDK ${{ env.NDK_VER }} 下载失败, 回退 runner 默认 NDK"
+              echo "NDK_VER=" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            mkdir -p "${{ github.workspace }}/ndk-${{ env.NDK_VER }}"
+            unzip -q /tmp/ndk.zip -d "${{ github.workspace }}/ndk-${{ env.NDK_VER }}"
             rm -f /tmp/ndk.zip
           fi
           echo "ANDROID_NDK_HOME=$NDK_HOME" >> "$GITHUB_ENV"

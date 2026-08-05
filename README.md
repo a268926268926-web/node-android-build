@@ -33,6 +33,9 @@ nodejs-v24.19.0-android-arm64/
 - 手动触发：Actions → Build Node.js for Android → Run workflow，可选
   - `node_version`：`lts`（默认，最新 LTS）/ 主版本如 `24` / 完整版本如 `24.19.0`
   - `target_arch`：`all`（默认，**全部 4 架构**）/ `arm64` / `arm` / `x64` / `ia32`
+  - `ndk_version`：`recommended`（默认，查仓库 [ndk-recommended.json](ndk-recommended.json)
+    按 node 大版本取推荐 NDK）/ 具体版本如 `r29` / 留空 = 用 runner 默认 NDK
+    （推荐版本下载失败会自动回退 runner 默认）
 - 定时：每月 5 日自动检查并构建最新 LTS（全部架构）
   （node LTS 补丁版约每月发布一次，多为周二；偶数大版本 10 月转 LTS，schedule 会自动跟进）
 - 已发布过的版本自动跳过（不重复构建）
@@ -114,6 +117,21 @@ build.sh 按解析出的版本号自动选 `patches/<大版本>/`；没有专属
 > node 大版本升级时 v8/构建系统可能变化，个别补丁可能失效。
 > build.sh 对所有补丁「尽力应用，失败告警 + sed 兜底」，不会因补丁失败中断，
 > 但请留意构建日志中的 `[!]` 警告，必要时对照 termux 更新 `patches/<大版本>/termux/`。
+
+## NDK 推荐版本（手动维护）
+
+**数据来源**：[Google Android 仓库清单 repository2-3.xml](https://dl.google.com/android/repository/repository2-3.xml)
+（所有 NDK 版本及下载地址的权威来源；本仓库 workflow 的下载 URL 即 `android-ndk-<rXX>-linux.zip`）。
+
+**为什么按 node 大版本分开**：不同 node 的 v8 对 libc++ 要求不同——
+node 26 的 v8 用到 `std::atomic_ref`（LLVM 19+ 才有），所以 NDK r27 编不了 26；
+node 24 用 r27 即可。推荐列表登记了才下载安装，未登记的大版本直接用 runner 默认 NDK（省下载）。
+
+**更新流程**（新 node 大版本转 LTS 或构建报 libc++ 缺特性时）：
+1. 查 repository2-3.xml 的最新稳定 NDK 版本
+2. 用该 NDK 手动触发一次单架构构建验证
+3. 通过后把版本登记进 `ndk-recommended.json`（如 `"26": "r29"`），提交即可，
+   workflow 无需改动
 
 ## 维护指南
 

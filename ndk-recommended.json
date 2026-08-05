@@ -1,0 +1,7 @@
+{
+  "source": "https://dl.google.com/android/repository/repository2-3.xml",
+  "note": "手动维护的 NDK 推荐版本列表。未登记的 node 大版本使用 GitHub runner 默认 NDK。更新流程见 README「维护指南」。",
+  "recommended": {
+    "26": "r29"
+  }
+}

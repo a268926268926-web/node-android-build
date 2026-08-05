@@ -142,8 +142,16 @@ info "应用补丁 ..."
 # (除 termux 专用项: @TERMUX_PREFIX@ 路径 / __TERMUX__ 守卫 / 测试用例)
 # 24/26 两套补丁均实测可应用; 新版本个别失效时告警并靠下方 sed 兜底
 for f in "$PATCH_DIR"/termux/*.patch; do
-  if patch -f -p1 -t --no-backup-if-mismatch < "$f" >/dev/null 2>&1; then
-    info "  应用 $(basename "$f")"
+  if patch -f -p1 -t --dry-run < "$f" >/dev/null 2>&1; then
+    # 未应用 -> 正式应用
+    if patch -f -p1 -t --no-backup-if-mismatch < "$f" >/dev/null 2>&1; then
+      info "  应用 $(basename "$f")"
+    else
+      warn "$(basename "$f") 应用失败"
+    fi
+  elif patch -f -p1 -t -R --dry-run < "$f" >/dev/null 2>&1; then
+    # 反向测试成功 = 已应用过 (源码来自缓存), 跳过
+    info "  已应用, 跳过 $(basename "$f")"
   else
     warn "$(basename "$f") 未生效 (新版本可能已修复/不再需要)"
   fi

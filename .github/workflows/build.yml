@@ -31,22 +31,58 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 提前解析版本 (cache key 需要), 与 build.sh 的 resolve_version 逻辑一致
+      - name: Resolve node version
+        run: |
+          V="${{ inputs.node_version || 'lts' }}"
+          case "$V" in
+            ""|lts|latest)
+              VER=$(curl -fsSL --max-time 30 "https://nodejs.org/dist/index.json" | python3 -c 'import json,sys;d=json.load(sys.stdin);l=[x for x in d if x.get("lts")];print(l[0]["version"].lstrip("v") if l else d[0]["version"].lstrip("v"))') ;;
+            *.*)
+              VER="${V#v}" ;;
+            *)
+              VER=$(curl -fsSL --max-time 30 "https://nodejs.org/dist/index.json" | python3 -c "import json,sys;d=json.load(sys.stdin);m=[x for x in d if x['version'].startswith('v$V.')];print(m[0]['version'].lstrip('v') if m else '')") ;;
+          esac
+          [ -n "$VER" ] || { echo "无法解析 node 版本: $V" >&2; exit 1; }
+          echo "NODE_VER=$VER" >> "$GITHUB_ENV"
+          echo "NODE_MAJOR=${VER%%.*}" >> "$GITHUB_ENV"
+          echo "解析到 node $VER (major ${VER%%.*})"
+
+      # 缓存: LLVM host 工具链 (跨架构共享, 同大版本内 v8 DEPS 钉定不变)
+      - name: Cache LLVM host toolchain
+        uses: actions/cache@v4
+        with:
+          path: out/llvm-project-build
+          key: llvm-${{ env.NODE_MAJOR }}
+
+      # 缓存: node 源码目录 (patch 后, 跨架构共享; tar 恢复保留 mtime, 同版本重跑增量)
+      - name: Cache node source
+        uses: actions/cache@v4
+        with:
+          path: out/node-v${{ env.NODE_VER }}
+          key: src-${{ env.NODE_VER }}
+
+      # 缓存: ninja 编译产物 (每架构独立; 同版本重跑全 up-to-date, 跨小版本回退增量)
+      - name: Cache build output
+        uses: actions/cache@v4
+        with:
+          path: out/Release
+          key: build-${{ matrix.arch }}-${{ env.NODE_MAJOR }}-${{ env.NODE_VER }}
+          restore-keys: |
+            build-${{ matrix.arch }}-${{ env.NODE_MAJOR }}-
+
       - name: Install dependencies
         # multilib: arm/ia32 (32 位目标) 的 host 工具链用 -m32 编译, 需要 32 位 glibc/libstdc++ 头文件
         run: sudo apt-get update && sudo apt-get install -y ninja-build xz-utils patch gcc-multilib g++-multilib
 
       - name: Build
         env:
-          NODE_VERSION: ${{ inputs.node_version || 'lts' }}
+          # 直接传解析后的完整版本, 与 cache key 保持一致 (build.sh 不再重复解析)
+          NODE_VERSION: ${{ env.NODE_VER }}
           TARGET_ARCH: ${{ matrix.arch }}
         run: |
           ./build.sh
           ls -lh out/node-android-*.tar.xz 2>/dev/null || true
-
-      - name: Export version
-        run: |
-          echo "NODE_VER=$(cat out/version.txt)" >> "$GITHUB_ENV"
-          echo "NODE_MAJOR=$(cut -d. -f1 out/version.txt)" >> "$GITHUB_ENV"
 
       - name: Upload artifact
         if: hashFiles('out/node-android-*.tar.xz') != ''

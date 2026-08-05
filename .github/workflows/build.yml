@@ -41,7 +41,7 @@ jobs:
           TARGET_ARCH: ${{ matrix.arch }}
         run: |
           ./build.sh
-          ls -lh out/*.tar.xz 2>/dev/null || true
+          ls -lh out/node-android-*.tar.xz 2>/dev/null || true
 
       - name: Export version
         run: |
@@ -49,22 +49,22 @@ jobs:
           echo "NODE_MAJOR=$(cut -d. -f1 out/version.txt)" >> "$GITHUB_ENV"
 
       - name: Upload artifact
-        if: hashFiles('out/*.tar.xz') != ''
+        if: hashFiles('out/node-android-*.tar.xz') != ''
         uses: actions/upload-artifact@v4
         with:
           name: node-android-${{ matrix.arch }}-${{ env.NODE_VER }}
-          path: out/*.tar.xz
+          path: out/node-android-*.tar.xz
           if-no-files-found: error
 
       # 历史版本保留: release 按大版本归档 (node-android-<arch>-<major>),
       # 每个版本一个 asset (node-android-<arch>-<version>.tar.xz), 同名自动跳过, 新版本追加
       - name: Upload release
-        if: hashFiles('out/*.tar.xz') != ''
+        if: hashFiles('out/node-android-*.tar.xz') != ''
         uses: ncipollo/release-action@v1.14.0
         with:
           tag: node-android-${{ matrix.arch }}-${{ env.NODE_MAJOR }}
           name: Node.js for Android (${{ matrix.arch }}) - ${{ env.NODE_MAJOR }}.x
-          artifacts: out/*.tar.xz
+          artifacts: out/node-android-*.tar.xz
           allowUpdates: true
           replacesArtifacts: false
           body: |

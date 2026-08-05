@@ -95,12 +95,16 @@ mkdir -p "$OUT_DIR"
 echo "$VER" > "$OUT_DIR/version.txt"
 
 # ---------- CI: 该版本已发布过则跳过 ----------
-# release tag 按版本归档: node-android-<arch>-<version>, 保留全部历史版本
+# release 按大版本归档: node-android-<arch>-<major> (如 node-android-arm64-24),
+# 每个版本一个 asset (node-android-<arch>-<version>.tar.xz), 历史全部保留
 skip_if_released() {
   if [ -n "${GITHUB_REPOSITORY:-}" ]; then
-    local tag="node-android-${DEST_CPU}-${VER}"
-    if curl -fsSL --max-time 20 "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" >/dev/null 2>&1; then
-      info "release $tag 已存在, 跳过构建"
+    local major="${VER%%.*}"
+    local tag="node-android-${DEST_CPU}-${major}"
+    local asset="node-android-${DEST_CPU}-${VER}.tar.xz"
+    if curl -fsSL --max-time 20 "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" 2>/dev/null \
+      | grep -q "\"name\": \"${asset}\""; then
+      info "$asset 已存在于 release $tag, 跳过构建"
       exit 0
     fi
   fi

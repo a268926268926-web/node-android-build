@@ -44,7 +44,9 @@ jobs:
           ls -lh out/*.tar.xz 2>/dev/null || true
 
       - name: Export version
-        run: echo "NODE_VER=$(cat out/version.txt)" >> "$GITHUB_ENV"
+        run: |
+          echo "NODE_VER=$(cat out/version.txt)" >> "$GITHUB_ENV"
+          echo "NODE_MAJOR=$(cut -d. -f1 out/version.txt)" >> "$GITHUB_ENV"
 
       - name: Upload artifact
         if: hashFiles('out/*.tar.xz') != ''
@@ -54,13 +56,18 @@ jobs:
           path: out/*.tar.xz
           if-no-files-found: error
 
-      # 历史版本保留: 每个版本一个独立 release tag, 不可变
+      # 历史版本保留: release 按大版本归档 (node-android-<arch>-<major>),
+      # 每个版本一个 asset (node-android-<arch>-<version>.tar.xz), 同名自动跳过, 新版本追加
       - name: Upload release
         if: hashFiles('out/*.tar.xz') != ''
         uses: ncipollo/release-action@v1.14.0
         with:
-          tag: node-android-${{ matrix.arch }}-${{ env.NODE_VER }}
+          tag: node-android-${{ matrix.arch }}-${{ env.NODE_MAJOR }}
+          name: Node.js for Android (${{ matrix.arch }}) - ${{ env.NODE_MAJOR }}.x
           artifacts: out/*.tar.xz
+          allowUpdates: true
+          replacesArtifacts: false
           body: |
-            Node.js for Android (${{ matrix.arch }}), 自包含二进制 (--partly-static)
+            Node.js for Android (${{ matrix.arch }}), node ${{ env.NODE_MAJOR }}.x 系列, 自包含二进制 (--partly-static)
+            本 release 按大版本归档: 每个小版本一个 asset (node-android-<arch>-<version>.tar.xz), 历史版本全部保留
             构建记录: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

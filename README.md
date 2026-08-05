@@ -15,8 +15,9 @@
 
 ## 产物
 
-每次构建产出 `node-android-<arch>-<version>.tar.xz`，**每个版本一个独立 release tag**
-（`node-android-arm64-24.19.0` / `node-android-arm-24.19.0` / `node-android-x64-24.19.0` / …），
+每次构建产出 `node-android-<arch>-<version>.tar.xz`，**release 按 node 大版本归档**：
+每个大版本一个 release tag（`node-android-arm64-24` / `node-android-arm-24` / `node-android-x64-26` / …），
+该大版本的每个小版本是一个 asset（`node-android-arm64-24.19.0.tar.xz` / `node-android-arm64-24.19.1.tar.xz` / …），
 **历史版本全部保留**，可随时回退下载：
 
 ```
@@ -35,7 +36,8 @@ nodejs-v24.19.0-android-arm64/
 - 定时：每月 5 日自动检查并构建最新 LTS（全部架构）
   （node LTS 补丁版约每月发布一次，多为周二；偶数大版本 10 月转 LTS，schedule 会自动跟进）
 - 已发布过的版本自动跳过（不重复构建）
-- **历史版本全部保留**：每个版本一个独立 release tag
+- **历史版本全部保留**：release 按大版本归档（`node-android-<arch>-<major>`），
+  每个小版本一个 asset，同名跳过、新版本追加
 
 ### 本地构建
 
@@ -116,7 +118,7 @@ build.sh 按解析出的版本号自动选 `patches/<大版本>/`；没有专属
 这个仓库是「构建脚本 + 补丁集」的轻量仓库，日常基本无人值守：
 
 - **每月例行**：不用管。`schedule` 会在每月 5 日自动构建最新 LTS（4 架构），
-  新版本自动发 release，旧版本自动跳过。偶尔看一眼 Actions 是否全绿即可。
+  新版本自动追加到对应大版本的 release asset，旧版本自动跳过。偶尔看一眼 Actions 是否全绿即可。
   （LTS 补丁版约每月一发，多为周二；偶尔有 1-2 周内的快速补丁，如不急可等下一个周期）
 - **主动构建**：Actions → Run workflow，选版本（`lts` / 主版本 / 完整版本）和架构（`all` 或单个）。
 - **Node 出新 LTS 大版本时**（如 27 转 LTS / 新大版本）：这是唯一需要动手的时候。

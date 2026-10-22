@@ -3,6 +3,9 @@
 用 GitHub Actions 编译**最新 LTS** 的 Node.js for Android，产出自包含二进制
 （`--partly-static`，不依赖 termux 环境，可在普通 Android 上直接运行）。
 
+> 本仓库是 `a268926268926-web/node-android-build` 维护 fork，用于给对应的
+> Sub-Store Android 模块 fork 提供独立、可持续更新的 Node.js release。
+
 方法参考 **termux-packages 的 [`nodejs-lts` 包](https://github.com/termux/termux-packages/tree/master/packages/nodejs-lts)**
 （活跃维护，当前 LTS v24.x）与 node 官方的 `android_configure.py`。
 不再依赖已停更的 [zongou/build](https://github.com/zongou/build)（停留在 node 21.x）。
